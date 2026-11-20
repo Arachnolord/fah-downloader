@@ -1,0 +1,8 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+yt-dlp>=2026.8.19
+# Browser-Tarnung (impersonate): ohne curl_cffi sperren PornHub & Co. mit 403.
+# yt-dlp 2026.08 akzeptiert 0.10.x bis 0.16.x.
+curl_cffi>=0.10,<0.17
+python-multipart==0.0.20
+itsdangerous==2.2.0

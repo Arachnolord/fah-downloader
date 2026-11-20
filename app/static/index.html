@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<!-- (c) 2026 Fabian Hammer – Alle Rechte vorbehalten. Geistiges Eigentum. -->
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAH Media Downloader</title>
+<meta name="theme-color" content="#0f1420">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="/static/style.css?v=__VERSION__">
+</head>
+<body>
+<header>
+  <div class="brand">⬇ FAH <span>Downloader</span></div>
+  <nav>
+    <button class="tab active" data-tab="dl">Download</button>
+    <button class="tab" data-tab="lib">Bibliothek <b id="lib-badge" class="badge"></b></button>
+    <button class="tab" data-tab="settings">Einstellungen</button>
+    <button class="tab" data-tab="nas">NAS / Ziel</button>
+    <button id="logout" class="ghost">Abmelden</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ── Download-Tab ─────────────────────────────────────────── -->
+  <section id="tab-dl" class="tab-panel active">
+    <div class="card">
+      <textarea id="urls" rows="2" placeholder="Video-/Playlist-URL(s) einfügen – eine pro Zeile. Funktioniert mit YouTube, Vimeo, TikTok, Twitter/X, Instagram, Twitch, SoundCloud u.v.m."></textarea>
+      <div class="row wrap">
+        <label class="inline">Modus
+          <select id="format_mode">
+            <option value="best">Video (beste Qualität)</option>
+            <option value="audio">Nur Audio</option>
+            <option value="custom">Eigenes yt-dlp-Format</option>
+          </select>
+        </label>
+        <label class="inline" id="container-wrap">Zielformat
+          <select id="video_container">
+            <option value="auto">automatisch</option>
+            <option value="mkv">MKV</option>
+            <option value="mp4">MP4</option>
+            <option value="webm">WebM</option>
+            <option value="mov">MOV</option>
+          </select>
+        </label>
+        <label class="inline" id="playlist-wrap">Playlist
+          <select id="playlist_mode">
+            <option value="playlist">ganze Liste laden</option>
+            <option value="single">nur diesen Titel</option>
+          </select>
+        </label>
+        <label class="inline" id="qual-wrap">Max. Höhe
+          <select id="max_quality">
+            <option value="0">unbegrenzt</option>
+            <option value="2160">4K (2160p)</option>
+            <option value="1440">1440p</option>
+            <option value="1080">1080p</option>
+            <option value="720">720p</option>
+            <option value="480">480p</option>
+          </select>
+        </label>
+        <label class="inline" id="audio-wrap" style="display:none">Audioformat
+          <select id="audio_format">
+            <option>mp3</option><option>m4a</option><option>opus</option>
+            <option>flac</option><option>wav</option>
+          </select>
+        </label>
+        <label class="inline grow">Ziel
+          <div class="dest-row">
+            <input id="dest" placeholder="Standard-Zielordner" readonly>
+            <button id="pick-dest" class="ghost small" type="button">📁 Wählen</button>
+          </div>
+        </label>
+      </div>
+      <p class="hint" id="container-hint">Umpacken erfolgt verlustfrei – Bild und Ton werden nicht neu kodiert.</p>
+      <p class="hint" id="playlist-hint">Bei einem Link aus einer Liste (…&amp;list=…) entscheidet
+        „Playlist“, ob die ganze Liste oder nur der angeklickte Titel geladen wird –
+        das Video ebenso wie das einzelne Lied bei YT-Musik.</p>
+      <div class="row">
+        <button id="start" class="primary big">⬇ Download starten</button>
+      </div>
+      <div id="add-msg" class="hint"></div>
+    </div>
+
+    <div class="row between">
+      <h2>Aktive Downloads</h2>
+      <button id="cancel-all" class="ghost small" style="display:none">Alle abbrechen</button>
+    </div>
+    <div id="queue" class="jobs"></div>
+    <div id="queue-empty" class="muted">Keine aktiven Downloads.</div>
+  </section>
+
+  <!-- ── Bibliothek (fertig / fehlgeschlagen / abgebrochen) ───── -->
+  <section id="tab-lib" class="tab-panel">
+    <h2>Bibliothek</h2>
+    <div class="row between wrap">
+      <div class="chips" id="lib-filters">
+        <button class="chip active" data-status="all">Alle <b>0</b></button>
+        <button class="chip" data-status="done">✓ Fertig <b>0</b></button>
+        <button class="chip" data-status="error">✗ Fehlgeschlagen <b>0</b></button>
+        <button class="chip" data-status="canceled">⏹ Abgebrochen <b>0</b></button>
+      </div>
+      <div class="lib-tools">
+        <input id="lib-search" type="search" placeholder="🔍 Titel oder URL suchen…">
+        <button id="lib-retry-all" class="ghost small" style="display:none">↻ Alle wiederholen</button>
+        <button id="lib-clear" class="ghost small">🗑 Rubrik leeren</button>
+      </div>
+    </div>
+    <div class="chips subtle" id="lib-rubriken"></div>
+    <div id="library" class="jobs"></div>
+    <div id="lib-empty" class="muted">Noch nichts in dieser Rubrik.</div>
+  </section>
+
+  <!-- ── Einstellungen ───────────────────────────────────────── -->
+  <section id="tab-settings" class="tab-panel">
+    <h2>Einstellungen</h2>
+    <div class="card grid2" id="settings-grid"></div>
+
+    <h2>Zugangsdaten je Seite</h2>
+    <div class="card">
+      <p class="hint">Für Seiten mit Login-Pflicht, Altersfreigabe oder Abo:
+        Domain, Benutzername und Passwort hinterlegen – der Downloader meldet sich
+        dann selbst an. Passwörter werden mit dem Instanz-Schlüssel verschlüsselt in
+        <code>config/logins.json</code> abgelegt und nie wieder angezeigt.
+        Ein Eintrag für <code>beispiel.de</code> gilt auch für <code>www.beispiel.de</code>.</p>
+      <div class="row wrap login-form">
+        <input id="login-domain" type="text" placeholder="beispiel.de" autocomplete="off">
+        <input id="login-user" type="text" placeholder="Benutzername" autocomplete="off">
+        <input id="login-pass" type="password" placeholder="Passwort" autocomplete="new-password">
+        <input id="login-vpass" type="password" placeholder="Video-Passwort (optional)" autocomplete="new-password">
+        <button id="login-save" class="ghost small">Hinterlegen</button>
+      </div>
+      <div id="login-msg" class="hint"></div>
+      <table class="tbl" id="login-list"></table>
+    </div>
+
+    <h2>Cookies (nur noch für Youtube nötig)</h2>
+    <div class="card">
+      <p class="hint">Google lässt bei Youtube keine Passwort-Anmeldung von
+        Fremdprogrammen zu – dort hilft nur eine Cookie-Datei. Für alles andere
+        sind die Zugangsdaten oben der bequemere Weg.
+        Datei im <strong>Netscape-Format</strong> exportieren; dafür reicht eine
+        <strong>kostenlose, quelloffene</strong> Erweiterung wie
+        „Get cookies.txt LOCALLY“ (Chrome/Edge) oder „cookies.txt“ (Firefox).
+        Abgelegt wird sie in <code>config/cookies.txt</code>, update-sicher.</p>
+      <div class="row wrap">
+        <input type="file" id="cookie-file" accept=".txt,text/plain">
+        <button id="cookie-upload" class="ghost small">Hochladen</button>
+        <button id="cookie-delete" class="ghost small">Entfernen</button>
+        <span id="cookie-status" class="muted"></span>
+      </div>
+    </div>
+
+    <h2>Ablage &amp; Zwischenspeicher</h2>
+    <div class="card">
+      <p class="hint">Neue Downloads werden nach <code>Quelle/Art/Jahr/Monat</code>
+        einsortiert. Ältere Dateien liegen noch flach im Zielordner – der Trockenlauf
+        zeigt, was wohin wandern würde, verschoben wird erst auf Knopfdruck.</p>
+      <div class="row wrap">
+        <button id="org-preview" class="ghost small">Trockenlauf</button>
+        <button id="org-run" class="ghost small" style="display:none">Jetzt einsortieren</button>
+        <span id="org-msg" class="muted"></span>
+      </div>
+      <div id="org-list" class="org-list"></div>
+      <div class="row wrap" style="margin-top:.8rem">
+        <button id="cache-clear" class="ghost small">Player-Zwischenspeicher leeren</button>
+        <span id="cache-msg" class="muted"></span>
+      </div>
+    </div>
+
+    <div class="row"><button id="save-settings" class="primary">Speichern</button>
+      <span id="settings-saved" class="ok"></span></div>
+    <p class="hint" id="version-line"></p>
+  </section>
+
+  <!-- ── NAS / Ziel ──────────────────────────────────────────── -->
+  <section id="tab-nas" class="tab-panel">
+    <h2>Netzlaufwerke (NAS / Server)</h2>
+    <p class="muted">Freigabe per SMB/CIFS einbinden – danach als Zielordner wählbar. Zugangsdaten werden verschlüsselt und update-sicher gespeichert.</p>
+    <div class="card">
+      <div class="grid2">
+        <label>Name (frei)<input id="s-name" placeholder="nas-medien"></label>
+        <label>Server / IP<input id="s-server" placeholder="192.168.1.10"></label>
+        <label>Freigabe<input id="s-share" placeholder="Medien"></label>
+        <label>Domäne (optional)<input id="s-domain" placeholder="WORKGROUP"></label>
+        <label>NAS-Benutzer<input id="s-user" autocomplete="off" placeholder="fabian"></label>
+        <label>NAS-Passwort<input id="s-pass" type="password" autocomplete="new-password"></label>
+      </div>
+      <div class="row"><button id="add-share" class="primary">Einbinden</button>
+        <span id="share-msg" class="error"></span></div>
+    </div>
+    <div id="shares" class="jobs"></div>
+  </section>
+</main>
+
+<!-- Ordner-Browser Modal -->
+<div id="browser" class="modal hidden">
+  <div class="modal-card">
+    <div class="row between"><h3>Zielordner wählen</h3><button id="browser-close" class="ghost small">✕</button></div>
+    <div id="browser-roots" class="chips"></div>
+    <p class="hint" id="browser-hint"></p>
+    <div class="browser-path" id="browser-current"></div>
+    <div id="browser-list" class="browser-list"></div>
+    <div class="row between">
+      <button id="browser-mkdir" class="ghost small">＋ Neuer Ordner</button>
+      <button id="browser-select" class="primary">Diesen Ordner nutzen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Player Modal -->
+<div id="player" class="modal hidden">
+  <div class="modal-card wide">
+    <div class="row between">
+      <h3 id="player-title">Wiedergabe</h3>
+      <button id="player-close" class="ghost small">✕</button>
+    </div>
+    <div id="player-files" class="chips"></div>
+    <div id="player-body" class="player-body"></div>
+    <div class="row between wrap">
+      <span class="browser-path" id="player-path"></span>
+      <button id="player-dl" class="ghost small">⬇ Herunterladen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Log Modal -->
+<div id="logbox" class="modal hidden">
+  <div class="modal-card wide">
+    <div class="row between"><h3>Protokoll</h3><button id="log-close" class="ghost small">✕</button></div>
+    <pre id="log-body" class="logview"></pre>
+    <div class="row between">
+      <span class="browser-path" id="log-url"></span>
+      <button id="log-copy" class="ghost small">📋 Kopieren</button>
+    </div>
+  </div>
+</div>
+
+<!-- Löschen-Bestätigung -->
+<div id="confirm" class="modal hidden">
+  <div class="modal-card">
+    <h3 id="confirm-title">Eintrag entfernen?</h3>
+    <p class="muted" id="confirm-text"></p>
+    <div class="row wrap">
+      <button id="confirm-entry" class="ghost">Nur aus der Liste</button>
+      <button id="confirm-file" class="danger">Liste + Datei löschen</button>
+      <button id="confirm-cancel" class="ghost">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js?v=__VERSION__"></script>
+</body>
+</html>

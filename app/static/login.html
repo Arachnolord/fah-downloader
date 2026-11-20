@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login · FAH Downloader</title>
+<meta name="theme-color" content="#0f1420">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="login-body">
+<div class="login-card">
+  <div class="logo">⬇ FAH <span>Downloader</span></div>
+  <h1 id="title">Anmelden</h1>
+  <p id="subtitle" class="muted">Bitte mit deinem Zugang anmelden.</p>
+  <form id="form">
+    <label>Benutzername
+      <input id="username" autocomplete="username" required autofocus>
+    </label>
+    <label>Passwort
+      <input id="password" type="password" autocomplete="current-password" required>
+    </label>
+    <label id="password2-wrap" style="display:none">Passwort wiederholen
+      <input id="password2" type="password" autocomplete="new-password">
+    </label>
+    <button type="submit" id="submit">Anmelden</button>
+    <div id="err" class="error"></div>
+  </form>
+</div>
+<script>
+let setupMode = false;
+async function init() {
+  const r = await fetch('/api/needs-setup');
+  const j = await r.json();
+  if (j.needs_setup) {
+    setupMode = true;
+    title.textContent = 'Ersteinrichtung';
+    subtitle.textContent = 'Lege deinen Admin-Zugang an.';
+    submit.textContent = 'Konto erstellen';
+    document.getElementById('password2-wrap').style.display = '';
+    document.getElementById('password').setAttribute('autocomplete','new-password');
+  }
+}
+document.getElementById('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  err.textContent = '';
+  const u = username.value, p = password.value;
+  if (setupMode && p !== document.getElementById('password2').value) {
+    err.textContent = 'Passwörter stimmen nicht überein.'; return;
+  }
+  const url = setupMode ? '/api/setup' : '/api/login';
+  const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username:u, password:p})});
+  if (r.ok) { location.href = '/'; }
+  else { const j = await r.json().catch(()=>({})); err.textContent = j.error || 'Fehlgeschlagen.'; }
+});
+init();
+</script>
+</body>
+</html>

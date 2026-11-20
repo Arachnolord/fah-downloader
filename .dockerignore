@@ -1,0 +1,10 @@
+config/
+downloads/
+*.zip
+.env
+.downloader_ports.lock
+manage.sh.new
+.git
+tests/
+tools/
+venv/

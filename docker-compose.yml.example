@@ -1,0 +1,58 @@
+# ============================================================================
+# FAH Media Downloader – Compose-Vorlage
+# manage.sh kopiert dies bei Erstinstallation nach docker-compose.yml und
+# ergaenzt bei Updates fehlende Dienste ADDITIV, ohne deine Anpassungen zu
+# ueberschreiben. Alle Ports/Pfade sind ueber ${VAR:-default} aus .env steuerbar.
+# ============================================================================
+services:
+  downloader:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fah-downloader:latest
+    container_name: fah-downloader
+    restart: unless-stopped
+    ports:
+      - "${DOWNLOADER_PORT:-8080}:8080"
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - ADMIN_USER=${ADMIN_USER:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      # Nur zur Anzeige: welcher Host-Pfad hinter /hostfs steckt.
+      - HOSTFS_HOST_PATH=${HOSTFS_MOUNT:-/volume1}
+      # Erlaubte Zielordner unterhalb des Host-Mounts (Komma-Liste, relativ
+      # zu HOSTFS_MOUNT). Leer = der ganze Mount ist waehlbar. Siehe .env.
+      - DOWNLOAD_ROOTS=${DOWNLOAD_ROOTS:-}
+      # 1 = Downloads von Adressen im eigenen Netz zulassen (Standard: nein).
+      - DOWNLOAD_ALLOW_PRIVATE=${DOWNLOAD_ALLOW_PRIVATE:-0}
+    volumes:
+      # Persistente Nutzerdaten (Settings, NAS-Zugaenge, Verlauf) – Update-sicher.
+      - ./config:/config
+      # Standard-Download-Ziel auf dem Host.
+      - ${DOWNLOADS_HOST_PATH:-./downloads}:/downloads
+      # Medien-Teilbaum des Hosts als frei waehlbares Ziel (read/write).
+      # Bewusst NICHT das ganze Host-Root: der Container laeuft als root mit
+      # SYS_ADMIN, ein Schreibzugriff auf / waere ein Vollzugriff auf das NAS.
+      - ${HOSTFS_MOUNT:-/volume1}:/hostfs
+    # Fuer CIFS/SMB-Mounts (NAS-Freigaben aus der WebGUI) noetig:
+    #   SYS_ADMIN + DAC_READ_SEARCH verlangt mount.cifs.
+    #   apparmor:unconfined ist ebenfalls Pflicht, solange Freigaben aus der
+    #   Oberflaeche eingebunden werden sollen: Dockers Standardprofil
+    #   "docker-default" enthaelt "deny mount" und blockt mount(2) trotz
+    #   SYS_ADMIN. Wer keine NAS-Freigaben braucht, kann alle vier Zeilen
+    #   (cap_add, security_opt, devices) entfernen -- Downloads auf /hostfs
+    #   und /downloads laufen ohne sie.
+    cap_add:
+      - SYS_ADMIN
+      - DAC_READ_SEARCH
+    security_opt:
+      - apparmor:unconfined
+    devices:
+      - /dev/fuse
+    healthcheck:
+      test: ["CMD", "python3", "-c",
+             "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=5)"]
+      interval: 60s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
