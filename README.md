@@ -4,6 +4,18 @@ Ein selbst gehosteter Medien-Downloader im Stil von MeTube – aber **leistungs�
 und für **alle Seiten** (yt-dlp, >1800 Portale: YouTube, Vimeo, TikTok, Twitter/X,
 Instagram, Twitch, SoundCloud, Facebook u. v. m.).
 
+## Screenshots
+
+*Aufgenommen mit Beispieldaten (freie Blender-Filme als Platzhalter) – keine echten Downloads oder Daten.*
+
+![Download – Links einfügen, Format wählen, starten](docs/screenshots/1-download.png)
+
+| Bibliothek | Einstellungen |
+|---|---|
+| ![Bibliothek](docs/screenshots/2-bibliothek.png) | ![Einstellungen](docs/screenshots/3-einstellungen.png) |
+| **NAS / Ziel** | **Handy** |
+| ![NAS als Ziel](docs/screenshots/4-nas-ziel.png) | <img src="docs/screenshots/5-handy.png" alt="Handy" width="260"> |
+
 ## Features
 - **Web-GUI** mit Live-Fortschritt (WebSocket), Warteschlange und **Bibliothek**
 - **Bibliothek mit Rubriken**: ✓ Fertig · ✗ Fehlgeschlagen · ⏹ Abgebrochen –
